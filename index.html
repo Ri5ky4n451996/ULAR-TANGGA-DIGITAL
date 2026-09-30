@@ -1382,45 +1382,54 @@
             if (ladder) {
                 typeBadge.textContent = "KOTAK TANGGA";
                 noticeBox.classList.add('flex', 'bg-emerald-500/20', 'border', 'border-emerald-500/30', 'text-emerald-300');
-                noticeBox.innerHTML = `<i class="fa-solid fa-stairs text-xl"></i><span>YEAY! ADA TANGGA! Jawab benar untuk naik ke Kotak ${ladder.end}!</span>`;
+                noticeBox.innerHTML = `<i class="fa-solid fa-stairs text-xl"></i><span>YEAY! TANGGA! Jawab BENAR untuk memanjat tangga ke Kotak ${ladder.end}. Jika SALAH, kembali ke posisi awal!</span>`;
             } else if (snake) {
                 typeBadge.textContent = "KOTAK ULAR";
                 noticeBox.classList.add('flex', 'bg-rose-500/20', 'border', 'border-rose-500/30', 'text-rose-300');
-                noticeBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-xl"></i><span>AWAS! KAMU MENEMUKAN ULAR! Jawab benar agar tidak turun ke Kotak ${snake.end}!</span>`;
+                noticeBox.innerHTML = `<i class="fa-solid fa-worm text-xl"></i><span>AWAS ULAR! Jawab BENAR untuk bertahan di Kotak ${tileNum}. Jika SALAH, meluncur turun kena ular ke Kotak ${snake.end}!</span>`;
             } else {
                 typeBadge.textContent = "SOAL BIASA";
                 noticeBox.classList.add('flex', 'bg-amber-500/20', 'border', 'border-amber-500/30', 'text-amber-300');
-                noticeBox.innerHTML = `<i class="fa-solid fa-lightbulb text-xl"></i><span>Jawab pertanyaan Informatika ini dengan tepat!</span>`;
+                noticeBox.innerHTML = `<i class="fa-solid fa-lightbulb text-xl"></i><span>Jawab BENAR untuk bertahan di Kotak ${tileNum}. Jika SALAH, kembali ke posisi sebelum lempar dadu!</span>`;
             }
 
             // Render Answer Option Buttons
             optionsContainer.innerHTML = '';
-            questionObj.options.forEach((optText) => {
-                const optKey = optText.trim().substring(0, 1); // "A", "B", "C", or "D"
+            const labels = ['A', 'B', 'C', 'D'];
+            questionObj.options.forEach((optText, i) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full p-4 rounded-2xl bg-slate-800/80 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500/50 text-left font-semibold text-sm sm:text-base text-slate-200 hover:text-white transition flex items-center justify-between group";
-                btn.onclick = () => submitAnswer(optKey);
-                btn.innerHTML = `
-                    <span>${optText}</span>
-                    <i class="fa-regular fa-circle text-slate-500 group-hover:text-indigo-400"></i>
-                `;
+                btn.className = "w-full text-left p-4 rounded-xl glass-card border border-slate-700 hover:border-indigo-500 hover:bg-indigo-600/20 text-slate-200 font-medium transition flex items-center justify-between group";
+                btn.onclick = () => submitAnswer(labels[i]);
+                btn.innerHTML = `<span>${optText}</span><i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-indigo-400 transition"></i>`;
                 optionsContainer.appendChild(btn);
             });
 
-            // Start 60 Second Countdown Timer
+            // Start 60-second timer
             startQuestionTimer();
 
             modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function startQuestionTimer() {
             clearInterval(questionTimer);
             timerSecondsLeft = 60;
-            updateTimerDisplay();
+            const timerText = document.getElementById('timerText');
+            const timerProgressBar = document.getElementById('timerProgressBar');
+
+            if (timerText) timerText.textContent = timerSecondsLeft;
+            if (timerProgressBar) {
+                timerProgressBar.style.transition = 'none';
+                timerProgressBar.style.width = '100%';
+            }
 
             questionTimer = setInterval(() => {
                 timerSecondsLeft--;
-                updateTimerDisplay();
+                if (timerText) timerText.textContent = timerSecondsLeft;
+                if (timerProgressBar) {
+                    timerProgressBar.style.transition = 'width 1s linear';
+                    timerProgressBar.style.width = `${(timerSecondsLeft / 60) * 100}%`;
+                }
 
                 if (timerSecondsLeft <= 0) {
                     clearInterval(questionTimer);
@@ -1429,14 +1438,181 @@
             }, 1000);
         }
 
-        function updateTimerDisplay() {
-            const textEl = document.getElementById('timerText');
-            const barEl = document.getElementById('timerProgressBar');
-            if (textEl) textEl.textContent = timerSecondsLeft;
-            if (barEl) {
-                const pct = (timerSecondsLeft / 60) * 100;
-                barEl.style.width = `${pct}%`;
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
+        }
+
+        let activeFeedbackCallback = null;
+
+        function showFeedback(title, message, type, callback) {
+            activeFeedbackCallback = callback;
+            const modal = document.getElementById('feedbackModal');
+            const iconEl = document.getElementById('feedbackIcon');
+            const titleEl = document.getElementById('feedbackTitle');
+            const msgEl = document.getElementById('feedbackMessage');
+
+            if (type === 'success') {
+                iconEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
+                titleEl.className = "text-2xl font-black text-emerald-400";
+            } else {
+                iconEl.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-500"></i>`;
+                titleEl.className = "text-2xl font-black text-rose-400";
+            }
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeFeedbackModal() {
+            playSound('click');
+            closeModal('feedbackModal');
+            if (typeof activeFeedbackCallback === 'function') {
+                const cb = activeFeedbackCallback;
+                activeFeedbackCallback = null;
+                cb();
+            }
+        }
+
+        async function animateMoveToTile(player, targetTile) {
+            const start = player.position;
+            if (start < targetTile) {
+                for (let pos = start + 1; pos <= targetTile; pos++) {
+                    player.position = pos;
+                    renderPawnsOnBoard();
+                    updateTurnHeader();
+                    renderPlayerTracker();
+                    playSound('step');
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            } else if (start > targetTile) {
+                for (let pos = start - 1; pos >= targetTile; pos--) {
+                    player.position = pos;
+                    renderPawnsOnBoard();
+                    updateTurnHeader();
+                    renderPlayerTracker();
+                    playSound('step');
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+        }
+
+        function getTileCenterCoords(tileNum) {
+            const wrapper = document.getElementById('boardOuterWrapper');
+            const tile = document.getElementById(`tile-${tileNum}`);
+            if (!wrapper || !tile) return { x: 0, y: 0 };
+            const rectW = wrapper.getBoundingClientRect();
+            const rectT = tile.getBoundingClientRect();
+            return {
+                x: rectT.left - rectW.left + rectT.width / 2,
+                y: rectT.top - rectW.top + rectT.height / 2
+            };
+        }
+
+        function animatePawnAlongPath(player, startTile, endTile, type) {
+            return new Promise((resolve) => {
+                const wrapper = document.getElementById('boardOuterWrapper');
+                if (!wrapper) {
+                    player.position = endTile;
+                    renderPawnsOnBoard();
+                    resolve();
+                    return;
+                }
+
+                const startPos = getTileCenterCoords(startTile);
+                const endPos = getTileCenterCoords(endTile);
+
+                player.position = -1;
+                renderPawnsOnBoard();
+
+                const floatingPawn = document.createElement('div');
+                floatingPawn.className = `w-8 h-8 rounded-full ${player.bgClass} flex items-center justify-center text-white text-sm font-black shadow-2xl border-2 border-white absolute z-50 pointer-events-none transition-transform`;
+                floatingPawn.innerHTML = `<i class="fa-solid ${player.icon}"></i>`;
+                floatingPawn.style.left = `${startPos.x - 16}px`;
+                floatingPawn.style.top = `${startPos.y - 16}px`;
+                wrapper.appendChild(floatingPawn);
+
+                const duration = type === 'ladder' ? 1200 : 1400;
+                const startTime = performance.now();
+
+                let curveFactor = 45;
+                if (type === 'snake') {
+                    const snakeIndex = SNAKES.findIndex(s => s.start === startTile && s.end === endTile);
+                    if (snakeIndex !== -1) {
+                        curveFactor = (snakeIndex % 2 === 0 ? 1 : -1) * 45;
+                    }
+                }
+
+                const midX = (startPos.x + endPos.x) / 2 + curveFactor;
+                const midY = (startPos.y + endPos.y) / 2 + 10;
+
+                let soundTimer = 0;
+
+                function step(now) {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(1, elapsed / duration);
+
+                    const ease = progress < 0.5 
+                        ? 4 * progress * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                    let x, y, angle = 0;
+
+                    if (type === 'ladder') {
+                        x = startPos.x + (endPos.x - startPos.x) * ease;
+                        y = startPos.y + (endPos.y - startPos.y) * ease;
+                        const wobble = Math.sin(ease * Math.PI * 8) * 3;
+                        x += wobble;
+
+                        if (now - soundTimer > 150 && progress < 0.95) {
+                            playSound('step');
+                            soundTimer = now;
+                        }
+                    } else {
+                        const invT = 1 - ease;
+                        x = invT * invT * startPos.x + 2 * invT * ease * midX + ease * ease * endPos.x;
+                        y = invT * invT * startPos.y + 2 * invT * ease * midY + ease * ease * endPos.y;
+
+                        const dx = 2 * invT * (midX - startPos.x) + 2 * ease * (endPos.x - midX);
+                        const dy = 2 * invT * (midY - startPos.y) + 2 * ease * (endPos.y - midY);
+                        angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+
+                        if (now - soundTimer > 180 && progress < 0.95) {
+                            playSound('snake');
+                            soundTimer = now;
+                        }
+                    }
+
+                    floatingPawn.style.left = `${x - 16}px`;
+                    floatingPawn.style.top = `${y - 16}px`;
+                    if (type === 'snake') {
+                        floatingPawn.style.transform = `rotate(${angle}deg) scale(1.15)`;
+                    } else {
+                        floatingPawn.style.transform = `scale(1.15)`;
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        if (floatingPawn.parentNode) {
+                            floatingPawn.parentNode.removeChild(floatingPawn);
+                        }
+                        player.position = endTile;
+                        renderPawnsOnBoard();
+                        updateTurnHeader();
+                        renderPlayerTracker();
+                        resolve();
+                    }
+                }
+
+                requestAnimationFrame(step);
+            });
         }
 
         async function submitAnswer(selectedKey) {
@@ -1455,11 +1631,11 @@
                 if (ladder) {
                     showFeedback('✓ BENAR!', `Jawaban benar! Kamu berhak naik tangga ke Kotak ${ladder.end}!`, 'success', async () => {
                         playSound('ladder');
-                        await animateMoveToTile(activePlayer, ladder.end);
+                        await animatePawnAlongPath(activePlayer, tileNum, ladder.end, 'ladder');
                         endTurn();
                     });
                 } else if (snake) {
-                    showFeedback('✓ BENAR!', 'Jawaban benar! Kamu berhasil melepaskan diri dari gigitan ular!', 'success', () => {
+                    showFeedback('✓ BENAR!', 'Jawaban benar! Kamu berhasil melepaskan diri dari gigitan ular dan bertahan di posisi ini!', 'success', () => {
                         endTurn();
                     });
                 } else {
@@ -1468,20 +1644,21 @@
                     });
                 }
             } else {
-                // WRONG ANSWER
                 playSound('wrong');
                 if (snake) {
-                    showFeedback('✕ SALAH', `Jawaban belum tepat. Kamu terpeleset turun ke Kotak ${snake.end}!`, 'error', async () => {
+                    showFeedback('✕ JAWABAN SALAH - KENA ULAR!', `Jawaban kurang tepat! Pion kamu meluncur turun kena ular ke Kotak ${snake.end}!`, 'error', async () => {
                         playSound('snake');
-                        await animateMoveToTile(activePlayer, snake.end);
+                        await animatePawnAlongPath(activePlayer, tileNum, snake.end, 'snake');
                         endTurn();
                     });
                 } else if (ladder) {
-                    showFeedback('✕ SALAH', 'Jawaban belum tepat. Kamu tetap berada di kotak ini.', 'error', () => {
+                    showFeedback('✕ JAWABAN SALAH', `Jawaban belum tepat! Kamu gagal naik tangga dan kembali ke posisi sebelum melempar dadu (Kotak ${previousTileBeforeTurn}).`, 'error', async () => {
+                        await animateMoveToTile(activePlayer, previousTileBeforeTurn);
                         endTurn();
                     });
                 } else {
-                    showFeedback('✕ SALAH', 'Jawaban belum tepat. Tetap di posisi saat ini.', 'error', () => {
+                    showFeedback('✕ JAWABAN SALAH', `Jawaban belum tepat! Pion kamu kembali ke posisi awal sebelum melempar dadu (Kotak ${previousTileBeforeTurn}).`, 'error', async () => {
+                        await animateMoveToTile(activePlayer, previousTileBeforeTurn);
                         endTurn();
                     });
                 }
@@ -1493,60 +1670,24 @@
             playSound('wrong');
 
             const activePlayer = players[currentPlayerIndex];
-            showFeedback('⏰ WAKTU HABIS', `Waktu 60 detik telah habis. Pion kembali ke posisi awal turn (Kotak ${previousTileBeforeTurn}).`, 'timeout', async () => {
-                await animateMoveToTile(activePlayer, previousTileBeforeTurn);
-                endTurn();
-            });
-        }
+            const tileNum = activeTileObj;
+            const snake = SNAKES.find(s => s.start === tileNum);
 
-        /* ===================================================================
-           10. FEEDBACK MODAL & TURN NEXT STEP
-           =================================================================== */
-        let feedbackCallback = null;
-
-        function showFeedback(title, message, type, onCloseCallback) {
-            feedbackCallback = onCloseCallback;
-            const modal = document.getElementById('feedbackModal');
-            const card = document.getElementById('feedbackCard');
-            const icon = document.getElementById('feedbackIcon');
-            const titleEl = document.getElementById('feedbackTitle');
-            const msgEl = document.getElementById('feedbackMessage');
-
-            titleEl.textContent = title;
-            msgEl.textContent = message;
-
-            if (type === 'success') {
-                icon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
-                card.className = "glass-card bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl animate-pop-in";
-            } else if (type === 'error') {
-                icon.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i>`;
-                card.className = "glass-card bg-slate-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl animate-shake";
+            if (snake) {
+                showFeedback('⏰ WAKTU HABIS - KENA ULAR!', `Waktu telah habis! Pion kamu meluncur turun kena ular ke Kotak ${snake.end}!`, 'timeout', async () => {
+                    playSound('snake');
+                    await animatePawnAlongPath(activePlayer, tileNum, snake.end, 'snake');
+                    endTurn();
+                });
             } else {
-                icon.innerHTML = `<i class="fa-solid fa-clock text-amber-400"></i>`;
-                card.className = "glass-card bg-slate-900 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl animate-pop-in";
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeFeedbackModal() {
-            closeModal('feedbackModal');
-            if (feedbackCallback) {
-                const cb = feedbackCallback;
-                feedbackCallback = null;
-                cb();
+                showFeedback('⏰ WAKTU HABIS', `Waktu 60 detik telah habis. Pion kembali ke posisi awal turn (Kotak ${previousTileBeforeTurn}).`, 'timeout', async () => {
+                    await animateMoveToTile(activePlayer, previousTileBeforeTurn);
+                    endTurn();
+                });
             }
         }
 
         function endTurn() {
-            // Check win condition
-            const activePlayer = players[currentPlayerIndex];
-            if (activePlayer.position >= 30) {
-                triggerVictory();
-                return;
-            }
-
-            // Switch to next player turn
             currentPlayerIndex = (currentPlayerIndex + 1) % playerCount;
             isRollingOrMoving = false;
 
@@ -1561,13 +1702,8 @@
             renderPawnsOnBoard();
         }
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) modal.classList.add('hidden');
-        }
-
         /* ===================================================================
-           11. VICTORY & CONFETTI CELEBRATION
+           10. FEEDBACK MODAL & TURN NEXT STEP
            =================================================================== */
         function triggerVictory() {
             playSound('victory');
