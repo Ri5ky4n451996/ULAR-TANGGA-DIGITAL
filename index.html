@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
+    <metameta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ular Tangga Digital - Informatika SMP Fase D</title>
 
@@ -670,7 +670,7 @@
             { id: 1, name: "Pemain 1", color: "#EF4444", bgClass: "bg-rose-500", textClass: "text-rose-400", borderClass: "border-rose-500", icon: "fa-robot" },
             { id: 2, name: "Pemain 2", color: "#3B82F6", bgClass: "bg-blue-500", textClass: "text-blue-400", borderClass: "border-blue-500", icon: "fa-user-astronaut" },
             { id: 3, name: "Pemain 3", color: "#10B981", bgClass: "bg-emerald-500", textClass: "text-emerald-400", borderClass: "border-emerald-500", icon: "fa-gamepad" },
-            { id: 4, name: "Pemain 4", color: "#8B5CF6", bgClass: "bg-purple-500", textClass: "text-purple-400", borderClass: "border-purple-500", icon: "fa-ninja" }
+            { id: 4, name: "Pemain 4", color: "#8B5CF6", bgClass: "bg-purple-500", textClass: "text-purple-400", borderClass: "border-purple-500", icon: "fa-user-ninja" }
         ];
 
         // Fixed Snakes & Ladders Map Connections (Square numbers)
@@ -1304,16 +1304,20 @@
             let current = player.position;
             const target = Math.min(30, current + steps);
 
+            // Pergerakan pion langkah demi langkah dengan tempo 800ms per kotak
             for (let pos = current + 1; pos <= target; pos++) {
                 player.position = pos;
                 renderPawnsOnBoard();
                 updateTurnHeader();
                 renderPlayerTracker();
                 playSound('step');
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 800));
             }
 
-            // After arriving at landing square, check square type
+            // Jeda sejenak setelah pion berhenti di kotak tujuan, baru periksa dan tampilkan pertanyaan jika ada
+            await new Promise(r => setTimeout(r, 600));
+
+            // Setelah pion berhenti di kotak tujuan, baru periksa dan tampilkan pertanyaan jika ada
             handleTileArrival(player.position);
         }
 
@@ -1326,7 +1330,7 @@
                     updateTurnHeader();
                     renderPlayerTracker();
                     playSound('step');
-                    await new Promise(r => setTimeout(r, 200));
+                    await new Promise(r => setTimeout(r, 800));
                 }
             } else if (start > targetTile) {
                 for (let pos = start - 1; pos >= targetTile; pos--) {
@@ -1335,7 +1339,7 @@
                     updateTurnHeader();
                     renderPlayerTracker();
                     playSound('step');
-                    await new Promise(r => setTimeout(r, 200));
+                    await new Promise(r => setTimeout(r, 800));
                 }
             }
         }
@@ -1477,29 +1481,6 @@
                 const cb = activeFeedbackCallback;
                 activeFeedbackCallback = null;
                 cb();
-            }
-        }
-
-        async function animateMoveToTile(player, targetTile) {
-            const start = player.position;
-            if (start < targetTile) {
-                for (let pos = start + 1; pos <= targetTile; pos++) {
-                    player.position = pos;
-                    renderPawnsOnBoard();
-                    updateTurnHeader();
-                    renderPlayerTracker();
-                    playSound('step');
-                    await new Promise(r => setTimeout(r, 200));
-                }
-            } else if (start > targetTile) {
-                for (let pos = start - 1; pos >= targetTile; pos--) {
-                    player.position = pos;
-                    renderPawnsOnBoard();
-                    updateTurnHeader();
-                    renderPlayerTracker();
-                    playSound('step');
-                    await new Promise(r => setTimeout(r, 200));
-                }
             }
         }
 
